@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Évaluation Croisée Anonyme — Pairs</title>
+<link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ms-purple: #6264A7; --ms-purple-light: #E8E8F4; --ms-purple-dark: #464775;
+    --ms-bg: #F5F5F5; --ms-white: #FFFFFF; --ms-border: #D1D1D1;
+    --ms-text: #242424; --ms-sub: #616161; --ms-input-border: #8A8A8A;
+    --ms-error: #C4314B; --ms-success: #107C10; --ms-teal: #237B4B;
+    --radius: 4px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--ms-bg); min-height: 100vh; color: var(--ms-text); }
+
+  .topbar {
+    background: var(--ms-purple); height: 48px; display: flex; align-items: center;
+    padding: 0 24px; gap: 12px; position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  }
+  .topbar svg { width: 24px; height: 24px; }
+  .topbar-title { color: white; font-size: 15px; font-weight: 600; }
+  .topbar-sep { color: rgba(255,255,255,.4); font-size: 18px; margin: 0 4px; }
+  .topbar-doc { color: rgba(255,255,255,.85); font-size: 14px; }
+
+  .form-header { background: linear-gradient(135deg,#464775 0%,#6264A7 60%,#8B5CF6 100%); padding: 40px 0 0; display: flex; justify-content: center; }
+  .form-header-inner { width: 640px; background: white; border-radius: 8px 8px 0 0; border-top: 8px solid #7B68EE; }
+  .anon-badge {
+    background: linear-gradient(90deg,#1B5E20,#2E7D32); color: white;
+    padding: 10px 36px; font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; gap: 8px; letter-spacing: .02em;
+  }
+  .form-header-content { padding: 28px 36px 28px; }
+  .form-title { font-size: 24px; font-weight: 700; color: var(--ms-text); margin-bottom: 10px; }
+  .form-subtitle { font-size: 14px; color: var(--ms-sub); line-height: 1.6; }
+  .required-notice { margin-top: 12px; font-size: 13px; color: var(--ms-sub); }
+  .required-notice span { color: var(--ms-error); font-weight: 600; }
+
+  .form-body { background: var(--ms-bg); display: flex; flex-direction: column; align-items: center; padding: 0 0 60px; }
+  .progress-bar { width: 640px; height: 4px; background: var(--ms-purple-light); border-radius: 2px; margin: 12px 0 0; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--ms-purple); border-radius: 2px; width: 0%; transition: width .4s ease; }
+
+  .section-label {
+    width: 640px; padding: 20px 0 8px; font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .08em; color: var(--ms-purple);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--ms-purple-light); }
+
+  .q-card {
+    width: 640px; background: var(--ms-white); border-radius: var(--radius);
+    border: 1px solid var(--ms-border); padding: 22px 28px 18px; margin-bottom: 12px;
+    transition: box-shadow .15s;
+  }
+  .q-card:focus-within { box-shadow: 0 0 0 2px var(--ms-purple); border-color: var(--ms-purple); }
+  .q-card.active { border-left: 4px solid var(--ms-purple); }
+  .q-label { font-size: 14.5px; font-weight: 600; margin-bottom: 12px; display: flex; gap: 4px; align-items: flex-start; line-height: 1.4; }
+  .q-label .req { color: var(--ms-error); font-size: 13px; }
+  .q-sub { font-size: 12.5px; color: var(--ms-sub); margin-bottom: 14px; margin-top: -6px; line-height: 1.5; }
+
+  .ms-select, .ms-text {
+    padding: 8px 12px; font-size: 14px; font-family: inherit;
+    border: 1px solid var(--ms-input-border); border-radius: var(--radius);
+    color: var(--ms-text); transition: border-color .1s;
+  }
+  .ms-select {
+    width: 100%; appearance: none; background: white
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23616161' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E")
+      no-repeat right 12px center; cursor: pointer;
+  }
+  .ms-text { width: 100%; }
+  .ms-select:focus, .ms-text:focus { outline: none; border-color: var(--ms-purple); }
+
+  .anon-notice {
+    background: #F1F8E9; border: 1px solid #8BC34A; border-radius: var(--radius);
+    padding: 12px 16px; font-size: 13px; color: #33691E; line-height: 1.6;
+    display: flex; gap: 10px; align-items: flex-start; margin-bottom: 14px;
+  }
+
+  .peer-matrix { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 4px; }
+  .peer-matrix th {
+    background: #E8E8F4; color: #464775; font-weight: 700; font-size: 12px;
+    text-transform: uppercase; letter-spacing: .04em; padding: 10px 12px;
+    text-align: left; border-bottom: 2px solid var(--ms-purple);
+  }
+  .peer-matrix th:nth-child(2), .peer-matrix th:nth-child(3) { text-align: center; }
+  .peer-matrix td { padding: 10px 12px; border-bottom: 1px solid #F0F0F0; vertical-align: middle; }
+  .peer-matrix tr:last-child td { border-bottom: none; }
+  .peer-matrix tr:nth-child(even) td { background: #FAFAFA; }
+  .peer-matrix .peer-name { font-weight: 500; }
+  .coeff-input {
+    width: 80px; padding: 7px 8px; font-size: 13px; font-family: inherit;
+    border: 1px solid var(--ms-input-border); border-radius: var(--radius);
+    text-align: center; transition: border-color .1s; display: block; margin: 0 auto;
+  }
+  .coeff-input:focus { outline: none; border-color: var(--ms-purple); }
+  .coeff-input.valid { border-color: #27AE60; background: #F1FFF4; }
+  .coeff-input.invalid { border-color: var(--ms-error); background: #FFF5F7; }
+
+  .legend { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0 4px; }
+  .chip { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .chip-low  { background: #FFF3E0; color: #E65100; border: 1px solid #FFCC80; }
+  .chip-norm { background: #E8F5E9; color: #2E7D32; border: 1px solid #A5D6A7; }
+  .chip-high { background: #E3F2FD; color: #1565C0; border: 1px solid #90CAF9; }
+
+  .vbar {
+    margin-top: 14px; padding: 12px 16px; border-radius: var(--radius);
+    display: none; align-items: center; gap: 10px; font-size: 13px; font-weight: 600;
+    background: #F1FFF4; border: 1px solid #27AE60; color: #1B5E20;
+  }
+  .vbar.warn  { background: #FFFBF0; border-color: #F59700; color: #7A4F00; }
+  .vbar.error { background: #FFF5F7; border-color: var(--ms-error); color: var(--ms-error); }
+
+  .radio-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .radio-option {
+    display: flex; align-items: center; gap: 8px; padding: 8px 16px;
+    border: 1px solid var(--ms-border); border-radius: 20px; cursor: pointer;
+    font-size: 13.5px; transition: all .1s; user-select: none;
+  }
+  .radio-option:hover { border-color: var(--ms-purple); color: var(--ms-purple); }
+  .radio-option.selected { background: var(--ms-purple-light); border-color: var(--ms-purple); color: var(--ms-purple); font-weight: 600; }
+  .radio-option input { accent-color: var(--ms-purple); }
+
+  .ms-textarea {
+    width: 100%; padding: 10px 12px; font-size: 14px; font-family: inherit;
+    border: 1px solid var(--ms-input-border); border-radius: var(--radius);
+    resize: vertical; min-height: 70px; color: var(--ms-text); line-height: 1.5;
+  }
+  .ms-textarea:focus { outline: none; border-color: var(--ms-purple); }
+
+  /* Step indicator */
+  .step-indicator { width: 640px; display: flex; gap: 0; margin: 16px 0 4px; }
+  .step { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .step-dot { width: 28px; height: 28px; border-radius: 50%; background: #E8E8F4; color: #888; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: all .3s; }
+  .step.active .step-dot { background: var(--ms-purple); color: white; }
+  .step.done   .step-dot { background: #27AE60; color: white; }
+  .step-label { font-size: 11px; color: var(--ms-sub); text-align: center; }
+  .step.active .step-label { color: var(--ms-purple); font-weight: 600; }
+  .step-line { flex: 1; height: 2px; background: #E8E8F4; margin: 14px -4px 0; }
+  .step-line.done { background: #27AE60; }
+
+  .submit-area { width: 640px; display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding: 20px 0; }
+  .btn-submit {
+    background: var(--ms-purple); color: white; font-family: inherit; font-size: 14px;
+    font-weight: 600; padding: 10px 32px; border: none; border-radius: 4px;
+    cursor: pointer; transition: background .15s;
+  }
+  .btn-submit:hover { background: var(--ms-purple-dark); }
+  .btn-submit:disabled { background: #aaa; cursor: not-allowed; }
+  .btn-clear { background: none; color: var(--ms-purple); font-family: inherit; font-size: 13.5px; font-weight: 600; padding: 10px 16px; border: none; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+  /* Sending state */
+  .sending-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(255,255,255,.85);
+    z-index: 999; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+  }
+  .sending-overlay.show { display: flex; }
+  .spinner { width: 48px; height: 48px; border: 4px solid #E8E8F4; border-top-color: var(--ms-purple); border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Success */
+  .success-screen { display: none; width: 640px; background: white; border-radius: 8px; border: 1px solid var(--ms-border); padding: 60px 40px; text-align: center; margin: 20px 0; }
+  .success-screen.show { display: block; }
+  .success-icon  { font-size: 64px; margin-bottom: 20px; }
+  .success-title { font-size: 22px; font-weight: 700; color: #107C10; margin-bottom: 10px; }
+  .success-sub   { font-size: 14px; color: var(--ms-sub); line-height: 1.6; }
+  .success-details { margin: 24px 0 0; background: #F6FFF7; border: 1px solid #27AE60; border-radius: var(--radius); padding: 16px 22px; text-align: left; font-size: 13.5px; line-height: 1.8; color: #155724; }
+
+  /* Error banner */
+  .error-banner {
+    width: 640px; background: #FFF5F7; border: 1px solid var(--ms-error);
+    border-radius: var(--radius); padding: 14px 18px; margin-bottom: 12px;
+    font-size: 13.5px; color: var(--ms-error); display: none; align-items: center; gap: 10px;
+  }
+  .error-banner.show { display: flex; }
+
+  /* Formspree notice */
+  .formspree-notice {
+    width: 640px; background: #EFF6FF; border: 1px solid #BFDBFE;
+    border-radius: var(--radius); padding: 12px 18px; margin: 8px 0;
+    font-size: 12.5px; color: #1E40AF; display: flex; gap: 8px; align-items: flex-start;
+  }
+</style>
+</head>
+<body>
+
+<!-- Sending overlay -->
+<div class="sending-overlay" id="sendingOverlay">
+  <div class="spinner"></div>
+  <div style="font-size:15px;font-weight:600;color:#464775;">Envoi en cours…</div>
+</div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <svg viewBox="0 0 24 24"><rect x="2" y="3" width="9" height="9" rx="1" fill="#EA3E23"/><rect x="13" y="3" width="9" height="9" rx="1" fill="#7FBA00"/><rect x="2" y="14" width="9" height="9" rx="1" fill="#00A4EF"/><rect x="13" y="14" width="9" height="9" rx="1" fill="#FFB900"/></svg>
+  <span class="topbar-title">Évaluation par les pairs</span>
+  <span class="topbar-sep">·</span>
+  <span class="topbar-doc">École d'Informatique — Projet de groupe</span>
+</div>
+
+<!-- FORM HEADER -->
+<div class="form-header">
+  <div class="form-header-inner">
+    <div class="anon-badge">🔒 Formulaire anonyme — vos réponses ne sont pas partagées à votre groupe</div>
+    <div class="form-header-content">
+      <div class="form-title">⚖️ Évaluation Croisée par les Pairs</div>
+      <div class="form-subtitle">
+        Évaluez l'implication de vos <strong>6 coéquipiers</strong> (pas vous-même) à travers un coefficient.<br>
+        Vos réponses sont <strong>anonymes</strong> : seule la moyenne des coefficients reçus sera utilisée.
+      </div>
+      <div class="required-notice">Les questions marquées <span>*</span> sont obligatoires.</div>
+    </div>
+  </div>
+</div>
+
+<!-- FORM BODY -->
+<div class="form-body" id="formBody">
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+  <div class="step-indicator">
+    <div class="step active" id="step1"><div class="step-dot">1</div><div class="step-label">Identification</div></div>
+    <div class="step-line" id="line1"></div>
+    <div class="step" id="step2"><div class="step-dot">2</div><div class="step-label">Évaluation</div></div>
+    <div class="step-line" id="line2"></div>
+    <div class="step" id="step3"><div class="step-dot">3</div><div class="step-label">Justification</div></div>
+  </div>
+
+  <!-- Error banner -->
+  <div class="error-banner" id="errorBanner">
+    ❌ <span id="errorMsg">Une erreur est survenue. Veuillez réessayer.</span>
+  </div>
+
+  <!-- ====== SECTION 1 ====== -->
+  <div class="section-label">🔍 Identification</div>
+
+  <div class="q-card active">
+    <div class="q-label">1. Votre groupe de projet <span class="req">*</span></div>
+    <div class="q-sub">Sélectionnez votre groupe parmi les 15 groupes du projet.</div>
+    <select class="ms-select" id="groupe" name="groupe" onchange="onGroupeChange()">
+      <option value="">— Sélectionner un groupe —</option>
+      <script>for(let i=1;i<=15;i++) document.write(`<option value="Groupe ${i}">Groupe ${i}</option>`);</script>
+    </select>
+  </div>
+
+  <div class="q-card">
+    <div class="q-label">2. Votre prénom et nom <span class="req">*</span></div>
+    <div class="q-sub">Uniquement pour vérifier la participation complète. <strong>Jamais partagé au groupe.</strong></div>
+    <input type="text" class="ms-text" id="selfName" name="evaluateur" placeholder="Ex : Emma Dupont" oninput="onSelfNameChange()">
+  </div>
+
+  <!-- ====== SECTION 2 ====== -->
+  <div class="section-label">⚖️ Coefficients d'implication</div>
+
+  <div class="q-card">
+    <div class="q-label">3. Évaluez l'implication de vos 6 coéquipiers <span class="req">*</span></div>
+    <div class="q-sub">Attribuez un coefficient entre 0.1 et 2.0. Laissez vide votre propre ligne.</div>
+
+    <div class="anon-notice">
+      🔒 <div>Vos coefficients individuels ne seront <strong>jamais communiqués</strong> à votre groupe. Seule la <strong>moyenne reçue</strong> par chaque étudiant sera utilisée dans le calcul final.</div>
+    </div>
+
+    <div class="legend">
+      <span class="chip chip-low">0.1 – 0.8 · Implication faible</span>
+      <span class="chip chip-norm">0.9 – 1.1 · Implication normale</span>
+      <span class="chip chip-high">1.2 – 2.0 · Implication forte</span>
+    </div>
+
+    <table class="peer-matrix">
+      <thead><tr><th>Coéquipier</th><th>Coefficient</th><th>Niveau</th></tr></thead>
+      <tbody id="peerTableBody">
+        <tr><td colspan="3" style="text-align:center;color:#888;padding:24px;font-style:italic;">
+          ← Sélectionnez d'abord votre groupe et votre nom
+        </td></tr>
+      </tbody>
+    </table>
+    <div class="vbar" id="vbar"><span id="vbarMsg"></span></div>
+  </div>
+
+  <!-- ====== SECTION 3 ====== -->
+  <div class="section-label">💬 Justification</div>
+
+  <div class="q-card">
+    <div class="q-label">4. Votre évaluation est-elle facile à justifier ?</div>
+    <div class="radio-group" id="certGroup">
+      <label class="radio-option" onclick="selectRadio(this,'certGroup')"><input type="radio" name="justification" value="oui"> ✅ Oui, clairement</label>
+      <label class="radio-option" onclick="selectRadio(this,'certGroup')"><input type="radio" name="justification" value="nuances"> 🤔 Quelques nuances</label>
+      <label class="radio-option" onclick="selectRadio(this,'certGroup')"><input type="radio" name="justification" value="complexe"> ⚠️ Situation complexe</label>
+    </div>
+  </div>
+
+  <div class="q-card">
+    <div class="q-label">5. Commentaire confidentiel au professeur (facultatif)</div>
+    <div class="q-sub">Visible uniquement par le professeur. Absences, conflits, charge déséquilibrée…</div>
+    <textarea class="ms-textarea" id="commentaire" name="commentaire" placeholder="Ex : Un membre a été absent pendant 3 semaines…"></textarea>
+  </div>
+
+  <div class="submit-area">
+    <button class="btn-submit" id="submitBtn" onclick="submitForm()">Envoyer mon évaluation ➜</button>
+    <button class="btn-clear" onclick="clearForm()">Effacer les réponses</button>
+  </div>
+
+  <!-- Success -->
+  <div class="success-screen" id="successScreen">
+    <div class="success-icon">🔒</div>
+    <div class="success-title">Évaluation enregistrée !</div>
+    <div class="success-sub">Vos coefficients ont été transmis de façon anonyme.<br>Le professeur les intégrera dans le calcul final des notes.</div>
+    <div class="success-details" id="successDetails"></div>
+  </div>
+
+</div><!-- end form-body -->
+
+<script>
+// =====================================================
+// ⚙️  CONFIGURATION — À MODIFIER
+// Remplacez la valeur ci-dessous par votre endpoint
+// Formspree après avoir créé votre formulaire sur
+// https://formspree.io/
+// Format : https://formspree.io/f/XXXXXXXX
+// =====================================================
+const FORMSPREE_ENDPOINT = 'https://formspree.io/f/VOTRE_ID_ICI';
+
+// =====================================================
+// Données des groupes
+// =====================================================
+const GROUPS = {};
+const NAMES = ['Alice','Baptiste','Chloé','Dylan','Emma','Florian','Gaëlle'];
+for(let g=1;g<=15;g++){
+  GROUPS[`Groupe ${g}`] = NAMES.map(n=>`${n} (G${g})`);
+}
+
+let currentGroup = null;
+let currentSelf  = null;
+
+function onGroupeChange(){
+  currentGroup = document.getElementById('groupe').value || null;
+  currentSelf  = null;
+  document.getElementById('selfName').value = '';
+  updatePeerTable();
+  updateProgress();
+}
+
+function onSelfNameChange(){
+  const raw = document.getElementById('selfName').value.trim().toLowerCase();
+  currentSelf = null;
+  if(currentGroup){
+    const members = GROUPS[currentGroup];
+    const match = members.find(m => raw && m.toLowerCase().includes(raw.split(' ')[0]));
+    if(match) currentSelf = match;
+  }
+  updatePeerTable();
+  updateProgress();
+}
+
+function updatePeerTable(){
+  const tbody = document.getElementById('peerTableBody');
+  if(!currentGroup){
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#888;padding:24px;font-style:italic;">← Sélectionnez d\'abord votre groupe</td></tr>';
+    return;
+  }
+  const members = GROUPS[currentGroup];
+  tbody.innerHTML = '';
+  let peerIdx = 0;
+  for(let i=0;i<members.length;i++){
+    const name  = members[i];
+    const isSelf = currentSelf && name === currentSelf;
+    if(isSelf) continue;
+    const idx = peerIdx++;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="peer-name">${name}</td>
+      <td><input type="number" class="coeff-input" id="coeff_${idx}" data-member="${name}"
+             min="0.1" max="2.0" step="0.1" value="1.0"
+             oninput="onCoeffInput(${idx})" onchange="onCoeffInput(${idx})"></td>
+      <td id="level_${idx}" style="text-align:center;font-size:13px;color:#888;">Normal</td>`;
+    tbody.appendChild(tr);
+  }
+  if(!currentSelf){
+    const info = document.createElement('tr');
+    info.innerHTML = '<td colspan="3" style="font-size:12px;color:#888;font-style:italic;padding:10px 12px;background:#FFFBF0;">⚠️ Renseignez votre nom pour exclure votre propre ligne.</td>';
+    tbody.insertBefore(info, tbody.firstChild);
+  }
+  updateVbar();
+}
+
+function onCoeffInput(idx){
+  const input = document.getElementById(`coeff_${idx}`);
+  const level = document.getElementById(`level_${idx}`);
+  const v = parseFloat(input.value);
+  input.className = 'coeff-input';
+  if(isNaN(v)||v<=0){ input.classList.add('invalid'); level.textContent='—'; level.style.color='#C4314B'; }
+  else if(v<0.8){ input.classList.add('valid'); level.textContent='📉 Faible'; level.style.color='#E65100'; }
+  else if(v<=1.1){ input.classList.add('valid'); level.textContent='✓ Normal'; level.style.color='#2E7D32'; }
+  else { input.classList.add('valid'); level.textContent='📈 Fort'; level.style.color='#1565C0'; }
+  updateVbar();
+  updateProgress();
+}
+
+function updateVbar(){
+  const vbar = document.getElementById('vbar');
+  const msg  = document.getElementById('vbarMsg');
+  const inputs = document.querySelectorAll('.coeff-input');
+  if(!inputs.length){ vbar.style.display='none'; return; }
+  let allValid = true;
+  inputs.forEach(i=>{ const v=parseFloat(i.value); if(isNaN(v)||v<=0) allValid=false; });
+  vbar.style.display='flex';
+  if(!allValid){ vbar.className='vbar error'; msg.textContent='❌ Un coefficient invalide (doit être entre 0.1 et 2.0)'; }
+  else { vbar.className='vbar'; msg.textContent='✓ Tous les coefficients sont valides'; }
+}
+
+function selectRadio(label, gid){
+  document.querySelectorAll(`#${gid} .radio-option`).forEach(l=>l.classList.remove('selected'));
+  label.classList.add('selected');
+  updateProgress();
+}
+
+function updateProgress(){
+  let score = 0;
+  if(document.getElementById('groupe').value) score++;
+  if(document.getElementById('selfName').value.trim()) score++;
+  const inputs = document.querySelectorAll('.coeff-input');
+  let allValid = inputs.length > 0;
+  inputs.forEach(i=>{ if(isNaN(parseFloat(i.value))||parseFloat(i.value)<=0) allValid=false; });
+  if(allValid && inputs.length>0) score+=2;
+  if(document.querySelector('.radio-option.selected')) score++;
+  document.getElementById('progressFill').style.width=(score/5*100)+'%';
+  const s1=score>=1, s2=score>=3, s3=score>=5;
+  document.getElementById('step1').className='step'+(s1?' done':' active');
+  document.getElementById('step2').className='step'+(s2?' done':s1?' active':'');
+  document.getElementById('step3').className='step'+(s3?' done':s2?' active':'');
+  document.getElementById('line1').className='step-line'+(s2?' done':'');
+  document.getElementById('line2').className='step-line'+(s3?' done':'');
+}
+
+// =====================================================
+// Envoi via Formspree (fetch JSON)
+// =====================================================
+async function submitForm(){
+  hideError();
+  const groupe = document.getElementById('groupe').value;
+  const name   = document.getElementById('selfName').value.trim();
+  if(!groupe || !name){
+    showError('Veuillez renseigner votre groupe et votre nom avant de soumettre.');
+    return;
+  }
+  const inputs = document.querySelectorAll('.coeff-input');
+  if(!inputs.length){
+    showError('Renseignez votre nom pour afficher les coéquipiers à évaluer.');
+    return;
+  }
+  let allValid = true;
+  inputs.forEach(i=>{ if(isNaN(parseFloat(i.value))||parseFloat(i.value)<=0) allValid=false; });
+  if(!allValid){
+    showError('Veuillez corriger les coefficients invalides avant d\'envoyer.');
+    return;
+  }
+
+  // Build payload
+  const payload = {
+    _subject: `[Éval. Croisée] ${groupe} — soumis par ${name}`,
+    groupe,
+    evaluateur: name + ' (ANONYME — ne pas partager)',
+    commentaire: document.getElementById('commentaire').value || '(aucun)',
+  };
+  const justif = document.querySelector('input[name="justification"]:checked');
+  payload.justification = justif ? justif.value : '(non renseigné)';
+
+  // Coefficients
+  let summary = '';
+  inputs.forEach(inp => {
+    const member = inp.getAttribute('data-member');
+    const v = parseFloat(inp.value).toFixed(1);
+    payload[`coeff_${member}`] = v;
+    summary += `• ${member} → ${v}\n`;
+  });
+  payload.resume_coefficients = summary;
+
+  // Send
+  document.getElementById('sendingOverlay').classList.add('show');
+  document.getElementById('submitBtn').disabled = true;
+
+  try {
+    const res = await fetch(FORMSPREE_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    document.getElementById('sendingOverlay').classList.remove('show');
+
+    if(res.ok){
+      // Build summary for user
+      const members = GROUPS[groupe].filter(m=>!currentSelf||m!==currentSelf);
+      let det = `<strong>Groupe :</strong> ${groupe}<br><strong>Évaluateur :</strong> ${name} (anonyme)<br><br><strong>Coefficients soumis :</strong><br>`;
+      inputs.forEach((inp,i)=>{
+        const v=parseFloat(inp.value);
+        const lvl=v<0.8?'📉 Faible':v<=1.1?'✓ Normal':'📈 Fort';
+        det+=`&nbsp;&nbsp;• ${members[i]||inp.getAttribute('data-member')} → <strong>${v.toFixed(1)}</strong> (${lvl})<br>`;
+      });
+      det+=`<br><em style="font-size:12px;color:#555">Vos réponses ont été transmises de façon anonyme via Formspree.</em>`;
+      document.getElementById('successDetails').innerHTML = det;
+      document.getElementById('progressFill').style.width='100%';
+      document.querySelectorAll('.q-card,.submit-area,.section-label,.step-indicator,.formspree-notice,.error-banner').forEach(el=>el.style.display='none');
+      document.getElementById('successScreen').classList.add('show');
+    } else {
+      const data = await res.json();
+      showError('Erreur lors de l\'envoi : ' + (data.error || 'Vérifiez votre endpoint Formspree.'));
+      document.getElementById('submitBtn').disabled = false;
+    }
+  } catch(err) {
+    document.getElementById('sendingOverlay').classList.remove('show');
+    showError('Impossible de joindre le serveur. Vérifiez votre connexion et l\'endpoint Formspree.');
+    document.getElementById('submitBtn').disabled = false;
+  }
+}
+
+function showError(msg){ const b=document.getElementById('errorBanner'); b.classList.add('show'); document.getElementById('errorMsg').textContent=msg; b.scrollIntoView({behavior:'smooth',block:'center'}); }
+function hideError(){ document.getElementById('errorBanner').classList.remove('show'); }
+
+function clearForm(){
+  if(confirm('Effacer toutes les réponses ?')){
+    document.getElementById('groupe').value='';
+    document.getElementById('selfName').value='';
+    document.getElementById('commentaire').value='';
+    currentGroup=null; currentSelf=null;
+    document.getElementById('peerTableBody').innerHTML='<tr><td colspan="3" style="text-align:center;color:#888;padding:24px;font-style:italic;">← Sélectionnez d\'abord votre groupe et votre nom</td></tr>';
+    document.getElementById('vbar').style.display='none';
+    document.querySelectorAll('.radio-option').forEach(l=>l.classList.remove('selected'));
+    document.getElementById('successScreen').classList.remove('show');
+    document.querySelectorAll('.q-card,.submit-area,.section-label,.step-indicator').forEach(el=>el.style.display='');
+    document.getElementById('submitBtn').disabled=false;
+    hideError();
+    updateProgress();
+  }
+}
+
+updateProgress();
+</script>
+</body>
+</html>
